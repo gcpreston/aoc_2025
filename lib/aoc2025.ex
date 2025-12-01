@@ -4,6 +4,7 @@ defmodule Aoc2025 do
   """
 
   @input_directory "input"
+  @test_input_directory "test_input"
 
   @doc """
   Read the entire input file for a day. Raises `File.Error`
@@ -21,6 +22,11 @@ defmodule Aoc2025 do
   @spec input_for_day(integer()) :: String.t()
   def input_for_day(day) do
     Path.join([@input_directory, String.pad_leading("#{day}.txt", 6, "0")])
+    |> File.read!()
+  end
+
+  def test_input(file_name) do
+    Path.join([@test_input_directory, file_name])
     |> File.read!()
   end
 end
