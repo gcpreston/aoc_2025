@@ -24,3 +24,6 @@ aoc_2025-*.tar
 
 # Temporary files, for example, from tests.
 /tmp/
+
+# Advent of Code input files
+/input/
