@@ -21,38 +21,38 @@ defmodule Aoc2025.Day02 do
   end
 
   # assumes a fixed-length range is given
-  defp part_2_invalid_ids_in_fixed_length_range(fixed_range) do
+  def part_2_invalid_ids_in_fixed_length_range(fixed_range) do
     low..high//1 = fixed_range
     dc = digit_count(low)
-    low_prefix = half_length_prefix(low)
-    high_prefix = half_length_prefix(high)
+    possible_repetition_lengths = factor(dc)
 
-    # inner range
-    inner_range = (low_prefix + 1)..(high_prefix - 1)//1
-    inner_invalids =
-      Enum.reduce(inner_range, MapSet.new(), fn prefix, acc ->
-        # This does repeated work for prefixes of the same length.
-        # If slow, find a way to eliminate more at once.
-        # possible_repeats =
-        #   for i in 1..digit_count(prefix) do
-        #     if rem(dc, i) == 0 do
-        #       i_length_prefix = m_length_prefix(prefix, i)
-        #       []
-        #     else
-        #       []
-        #     end
-        #   end
+    # all prefix ranges whose length is a factor of the length of the fixed range
+    prefix_ranges =
+      Enum.map(possible_repetition_lengths, fn m ->
+        low_prefix = m_length_prefix(low, m)
+        high_prefix = m_length_prefix(high, m)
+        low_prefix..high_prefix//1
       end)
 
-    # does the low edge count?
-    low_repeated = repeated(half_length_prefix(low))
-    low_invalid =  if low_repeated >= low and low_repeated <= high, do: [low_repeated], else: []
+    # compute all invalids; may include repeats and is not flattened
+    Enum.map(prefix_ranges, fn low_prefix..high_prefix//1 ->
+      prefix_dc = digit_count(low_prefix)
+      repeat_count = div(dc, prefix_dc)
 
-    # does the high edge count?
-    high_repeated = repeated(half_length_prefix(high))
-    high_invalid = if high_prefix != low_prefix and high_repeated >= low and high_repeated <= high, do: [high_repeated], else: []
+      # inner range
+      inner_range = (low_prefix + 1)..(high_prefix - 1)//1
+      inner_invalids = Enum.map(inner_range, fn p -> repeated(p, repeat_count) end)
 
-    low_invalid ++ high_invalid ++ inner_invalids
+      # does the low edge count?
+      low_repeated = repeated(low_prefix, repeat_count)
+      low_invalid =  if low_repeated >= low and low_repeated <= high, do: [low_repeated], else: []
+
+      # does the high edge count?
+      high_repeated = repeated(high_prefix, repeat_count)
+      high_invalid = if high_prefix != low_prefix and high_repeated >= low and high_repeated <= high, do: [high_repeated], else: []
+
+      low_invalid ++ high_invalid ++ inner_invalids
+    end)
   end
 
   # SIMPLEST CASE: range within same even digit count.
@@ -108,6 +108,17 @@ defmodule Aoc2025.Day02 do
   # - max size to check is that half-length prefix, meaning we are looking between 123..300
   # - 124: 111111, 121212, 124124
   # - honestly just iterate thru all and do a set intersection reduction
+  #
+  # ex: 1234567-3000000
+  # - half-length prefix range would give 123-300
+  # - would end up checking 3 times for 177 different prefixes just to find almost nothing
+  # - Really, length 7 => longest prefix length would be 1 => check 1-3
+  # - **We want to check prefixes for factors of length**
+  #
+  # ex: 1000000000000000-200000000000000 (length 15)
+  # - factors: 1, 3, 5, 15 => check 1, 3, 5
+  # - 1-2, 100-200, 10000-20000
+  # - 100-200 => edge + 101-199 will automatically be in, **same process as part 1**
 
   def part_1(input) do
     ranges = parse_input(input)
@@ -129,16 +140,17 @@ defmodule Aoc2025.Day02 do
   def part_2(input) do
     ranges = parse_input(input)
 
-    # reduce to ranges which may have a double-repeat
-    filtered_fixed_ranges =
+    # reduce to fixed-length ranges
+    fixed_ranges =
       ranges
       |> Enum.map(&range_to_fixed_length_ranges/1)
       |> List.flatten()
 
     # sum the invalids in each range
-    filtered_fixed_ranges
+    fixed_ranges
     |> Enum.map(&part_2_invalid_ids_in_fixed_length_range/1)
     |> List.flatten()
+    |> Enum.uniq()
     |> Enum.sum()
   end
 
@@ -180,5 +192,33 @@ defmodule Aoc2025.Day02 do
     div(n, 10 ** (dc - m))
   end
 
-  defp repeated(n), do: (n * (10 ** digit_count(n))) + n
+  defp with_x_zeros(n, x), do: n * (10 ** x)
+
+  def repeated(n), do: with_x_zeros(n, digit_count(n)) + n
+  def repeated(n, 1), do: n
+  def repeated(n, m), do: with_x_zeros(repeated(n, m - 1), digit_count(n)) + n
+
+  # return all unique factors except n itself
+  # assumes n > 0 is given
+  def factor(1), do: []
+  def factor(number), do: factor(number, 2, [1])
+
+  defp factor(number, divisor, acc) do
+    if divisor > :math.sqrt(number) do
+      acc
+    else
+      new_acc =
+        if rem(number, divisor) == 0 do
+          if divisor == div(number, divisor) do
+            [divisor | acc]
+          else
+            [divisor, div(number, divisor) | acc]
+          end
+        else
+          acc
+        end
+
+      factor(number, divisor + 1, new_acc)
+    end
+  end
 end
