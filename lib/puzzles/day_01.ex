@@ -6,7 +6,7 @@ defmodule Aoc2025.Day01 do
 
     {_last_cur, zero_count} =
       Enum.reduce(clicks, {50, 0}, fn n, {cur, zero_count} ->
-        new_cur = next_cursor(cur, n) |> dbg()
+        new_cur = next_cursor(cur, n)
         {new_cur, (if new_cur == 0, do: zero_count + 1, else: zero_count)}
       end)
 
