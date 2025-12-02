@@ -23,10 +23,12 @@ defmodule Aoc2025 do
   def input_for_day(day) do
     Path.join([@input_directory, String.pad_leading("#{day}.txt", 6, "0")])
     |> File.read!()
+    |> String.trim()
   end
 
   def test_input(file_name) do
     Path.join([@test_input_directory, file_name])
     |> File.read!()
+    |> String.trim()
   end
 end
