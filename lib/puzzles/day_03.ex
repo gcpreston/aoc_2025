@@ -8,20 +8,26 @@ defmodule Aoc2025.Day03 do
     banks = parse_input(input)
 
     banks
-    |> Enum.map(&compute_joltage/1)
+    |> Enum.map(fn bank -> compute_joltage(bank, 2) end)
     |> Enum.sum()
   end
 
-  def compute_joltage(bank) do
-    first_digit_slice = Enum.slice(bank, 0..(length(bank) - 2))
-    first_digit_index = max_index(first_digit_slice)
-    first_digit = Enum.at(first_digit_slice, first_digit_index)
+  def part_2(input) do
+    parse_input(input)
+    |> Enum.map(fn bank -> compute_joltage(bank, 12) end)
+    |> Enum.sum()
+  end
 
-    second_digit_slice = Enum.slice(bank, (first_digit_index + 1)..(length(bank) - 1))
-    second_digit_index = max_index(second_digit_slice)
-    second_digit = Enum.at(second_digit_slice, second_digit_index)
+  def compute_joltage(bank, length), do: compute_joltage(bank, length, [])
 
-    (first_digit * 10) + second_digit
+  def compute_joltage(_bank, 0, acc), do: Enum.reverse(acc) |> Enum.join() |> String.to_integer()
+
+  def compute_joltage(bank, length, acc) do
+    digit_slice = Enum.slice(bank, 0..(length(bank) - length)//1)
+    digit_index = max_index(digit_slice)
+    digit = Enum.at(digit_slice, digit_index)
+
+    compute_joltage(Enum.slice(bank, (digit_index + 1)..(length(bank) - 1)//1), length - 1, [digit | acc])
   end
 
   def parse_input(input) do
