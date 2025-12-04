@@ -8,24 +8,15 @@ defmodule Aoc2025.Day04 do
     #   * sum all neighbors
     #   * count if < 4
 
-    data = parse_input(input)
-
-    Enum.reduce(data, 0, fn {pos, val}, acc ->
-      if val == 1 do
-        neighbor_total =
-          neighbors(pos)
-          |> Enum.map(fn n -> Map.get(data, n, 0) end)
-          |> Enum.sum()
-
-        if neighbor_total < 4, do: acc + 1, else: acc
-      else
-        acc
-      end
-    end)
+    parse_input(input)
+    |> removable_positions()
+    |> length()
   end
 
   def part_2(input) do
-
+    parse_input(input)
+    |> continuously_removable()
+    |> length()
   end
 
   def parse_input(input) do
@@ -52,5 +43,35 @@ defmodule Aoc2025.Day04 do
       {r, c - 1}, {r, c + 1},
       {r + 1, c - 1}, {r + 1, c}, {r + 1, c + 1}
     ]
+  end
+
+  defp removable_positions(data) do
+    Enum.reduce(data, [], fn {pos, val}, acc ->
+      if val == 1 do
+        neighbor_total =
+          neighbors(pos)
+          |> Enum.map(fn n -> Map.get(data, n, 0) end)
+          |> Enum.sum()
+
+        if neighbor_total < 4, do: [pos | acc], else: acc
+      else
+        acc
+      end
+    end)
+  end
+
+  def continuously_removable(data), do: continuously_removable(data, [])
+
+  def continuously_removable(data, acc) do
+    case removable_positions(data) do
+      [] ->
+        acc
+
+      removable ->
+        acc = removable ++ acc
+        remove_map = Enum.reduce(removable, %{}, fn p, m -> Map.put(m, p, 0) end)
+        new_data = Map.merge(data, remove_map)
+        continuously_removable(new_data, acc)
+    end
   end
 end
