@@ -39,13 +39,13 @@ defmodule Aoc2025 do
 
     input = input_for_day(day)
     part_1_result = apply(module, :part_1, [input])
-    IO.puts("Part 1: #{part_1_result}")
     part_2_result = apply(module, :part_2, [input])
-    IO.puts("Part 2: #{part_2_result}")
+
+    {part_1_result, part_2_result}
   end
 
   def test_day(day) do
-    padded_day = String.pad_leading("#{day}.txt", 6, "0")
+    padded_day = String.pad_leading("#{day}", 2, "0")
 
     module =
       "Elixir.Aoc2025.Day#{padded_day}"
@@ -53,8 +53,8 @@ defmodule Aoc2025 do
 
     input = test_input("#{padded_day}.txt")
     part_1_result = apply(module, :part_1, [input])
-    IO.puts("Part 1: #{part_1_result}")
     part_2_result = apply(module, :part_2, [input])
-    IO.puts("Part 2: #{part_2_result}")
+
+    {part_1_result, part_2_result}
   end
 end
