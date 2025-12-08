@@ -26,7 +26,27 @@ defmodule Aoc2025.Day08 do
   end
 
   def part_2(input) do
+    boxes = parse_input(input)
 
+    # IDEA
+    # - Enum.reduce_while until there is one connected component of size length(boxes)
+
+    boxes
+    |> comb(2)
+    |> Enum.map(fn [box1, box2] -> {box1, box2, distance(box1, box2)} end)
+    |> Enum.sort(fn {_, _, d1}, {_, _, d2} -> d1 <= d2 end)
+    |> Enum.reduce_while([], fn pair, acc ->
+      new_acc = connected_components([pair], acc)
+
+      if length(new_acc) == 1 && MapSet.size(hd(new_acc)) == length(boxes) do
+        {box1, box2, _} = pair
+        [x1, _, _] = box1
+        [x2, _, _] = box2
+        {:halt, x1 * x2}
+      else
+        {:cont, new_acc}
+      end
+    end)
   end
 
   def parse_input(input) do
@@ -68,7 +88,7 @@ defmodule Aoc2025.Day08 do
   #   * if there are 0, make new set
   def connected_components([{a, b, _distance} | rest], acc) do
     new_acc =
-      case Enum.split_with(acc, fn s -> a in s or b in s end) do
+      case Enum.split_with(acc, fn s -> a in s || b in s end) do
         {[set1, set2], others} -> [MapSet.union(set1, set2) | others]
         {[set1], others} -> [set1 |> MapSet.put(a) |> MapSet.put(b) | others]
         {[], others} -> [MapSet.new([a, b]) | others]
