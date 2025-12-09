@@ -61,7 +61,15 @@ defmodule Aoc2025.Day09 do
   def all_red_or_green(data, p1, p2) do
     data
     |> windowed()
-    |> Enum.all?(fn line -> !crosses(line, p1, p2) end)
+    |> Enum.all?(fn line ->
+      result = !crosses(line, p1, p2)
+
+      if !result do
+        dbg({line, p1, p2})
+      end
+
+      result
+      end)
   end
 
   def windowed(l), do: windowed(tl(l), hd(l), [{List.last(l), hd(l)}])
@@ -74,17 +82,23 @@ defmodule Aoc2025.Day09 do
     # - it goes through and does not lie on the boundary
     # - which means if line is (x1, x2, y), p1_y < y < p2_y (assuming p1 top left and p2 bottom right)
     # - or (x, y1, y2) : p1_x < x < p2_x
+    #
+    # PROBLEM WAS: intersecting AT bottom border while not on L/R edge was saying yes, there is a cross.
+
+    diff_cx = if cx1 > cx2, do: -1, else: 1
+    diff_cy = if cy1 > cy2, do: -1, else: 1
 
     cond do
       ly1 == ly2 ->
         step_l = if lx1 > lx2, do: -1, else: 1
         step_c = if cx1 > cx2, do: -1, else: 1
-        ((ly1 > cy1 && ly1 < cy2) || (ly1 > cy2 && ly1 < cy1)) && !Range.disjoint?(lx1..lx2//step_l, cx1..cx2//step_c)
+        ((ly1 > cy1 && ly1 < cy2) || (ly1 > cy2 && ly1 < cy1)) && !Range.disjoint?(lx1..lx2//step_l, (cx1 + diff_cx)..(cx2 - diff_cy)//step_c)
 
       lx1 == lx2 ->
         step_l = if ly1 > ly2, do: -1, else: 1
         step_c = if cy1 > cy2, do: -1, else: 1
-        ((lx1 > cx1 && lx1 < cx2) || (lx1 > cx2 && lx1 < cx1)) && !Range.disjoint?(ly1..ly2//step_l, cy1..cy2//step_c)
+        ((lx1 > cx1 && lx1 < cx2) || (lx1 > cx2 && lx1 < cx1)) && !Range.disjoint?(ly1..ly2//step_l, (cy1 + diff_cy)..(cy2 - diff_cy)//step_c)
+
       true -> raise "invalid line case!"
     end
   end
