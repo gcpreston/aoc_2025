@@ -65,7 +65,7 @@ defmodule Aoc2025.Day10 do
 
   def find_goal(light_goal, buttons) do
     lights_off = MapSet.new()
-    q = :queue.from_list(Enum.map(buttons, fn button -> {press_button(lights_off, button), 1} end))
+    q = :queue.from_list(Enum.map(buttons, fn button -> {press_button(lights_off, button), 1, MapSet.new([lights_off])} end))
     find_goal(light_goal, buttons, q)
   end
 
@@ -74,13 +74,22 @@ defmodule Aoc2025.Day10 do
       {:empty, _q} ->
         raise "how did we even get here"
 
-      {{:value, {light_state, depth}}, q} ->
-        if light_state == light_goal do
-          depth
-        else
-          new_additions = :queue.from_list(Enum.map(buttons, fn button -> {press_button(light_state, button), depth + 1} end))
-          new_q = :queue.join(q, new_additions)
-          find_goal(light_goal, buttons, new_q)
+      {{:value, {light_state, depth, seen}}, q} ->
+        cond do
+          light_state == light_goal ->
+            depth
+
+          true ->
+            new_additions = :queue.from_list(Enum.flat_map(buttons, fn button ->
+              next_state = press_button(light_state, button)
+              if next_state in seen do
+                []
+              else
+                [{next_state, depth + 1, MapSet.put(seen, light_state)}]
+              end
+            end))
+            new_q = :queue.join(q, new_additions)
+            find_goal(light_goal, buttons, new_q)
         end
     end
   end
