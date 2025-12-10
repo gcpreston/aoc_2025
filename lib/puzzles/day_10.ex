@@ -19,12 +19,21 @@ defmodule Aoc2025.Day10 do
     goals = parse_input(input)
 
     goals
-    |> Enum.map(fn {light_goal, buttons} -> find_goal(light_goal, buttons) end)
+    |> Enum.map(fn {light_goal, buttons, _joltages} -> find_goal(light_goal, buttons) end)
     |> Enum.sum()
   end
 
-  def part_2(_input) do
+  # Latest answer: 18557 (too low)
+  def part_2(input) do
+    goals = parse_input(input)
 
+    goals
+    |> Enum.with_index()
+    |> Enum.map(fn {{_light_goal, buttons, joltages}, i} ->
+      IO.puts("Solving for input line #{i + 1}")
+      solve_joltages(joltages, buttons)
+    end)
+    |> Enum.sum()
   end
 
   def parse_input(input) do
@@ -36,8 +45,8 @@ defmodule Aoc2025.Day10 do
   def parse_line(line) do
     elements = String.split(line, " ")
     [lights_str | rest] = elements
-    {button_strs, _unknwon} = Enum.split(rest, length(rest) - 1)
-    {parse_lights(lights_str), Enum.map(button_strs, &parse_button/1)}
+    {button_strs, [joltages_str]} = Enum.split(rest, length(rest) - 1)
+    {parse_lights(lights_str), Enum.map(button_strs, &parse_button/1), parse_joltages(joltages_str)}
   end
 
   def parse_lights(lights_str) do
@@ -56,9 +65,27 @@ defmodule Aoc2025.Day10 do
     |> MapSet.new()
   end
 
+  def parse_joltages(joltages_str) do
+    joltages_str
+    |> String.slice(1..(String.length(joltages_str) - 2))
+    |> String.split(",")
+    |> Enum.map(&String.to_integer/1)
+  end
+
   def find_indices(l, to_find) do
     Enum.reduce(Enum.with_index(l), [], fn {e, i}, acc ->
       if e == to_find do
+        [i | acc]
+      else
+        acc
+      end
+    end)
+    |> Enum.reverse()
+  end
+
+  def find_indices_pred(l, f) do
+    Enum.reduce(Enum.with_index(l), [], fn {e, i}, acc ->
+      if f.(e) do
         [i | acc]
       else
         acc
@@ -93,10 +120,97 @@ defmodule Aoc2025.Day10 do
     end
   end
 
-    # https://rosettacode.org/wiki/Combinations#Elixir
+  # https://rosettacode.org/wiki/Combinations#Elixir
   def comb(_, 0), do: [[]]
   def comb([], _), do: []
   def comb([h|t], m) do
     (for l <- comb(t, m-1), do: [h|l]) ++ comb(t, m)
+  end
+
+  def solve_joltages(joltages, buttons) do
+    # IDEA
+    # - Generate constraint equations
+    # - Format to CPLEX LP
+    # - Call subprocess to highs
+    # - Read and parse solution file
+    # - Return sum of variable values
+
+    model =
+      generate_constraints(joltages, buttons)
+      |> to_cplex_lp()
+
+    File.write!("day10_model_temp.lp", model)
+
+    System.shell("highs day10_model_temp.lp --solution_file day10_solution_temp")
+
+    File.read!("day10_solution_temp")
+    |> extract_variable_values()
+    |> Enum.sum()
+  end
+
+  def generate_constraints(joltages, buttons) do
+    # examples return
+    # {
+    #   ["x1", "x2", "x3", "x4", "x5", "x6"],
+    #   [
+    #     {["x5", "x6"], 3},
+    #     {["x2", "x6"], 5},
+    #     {["x3", "x4", "x5"], 4},
+    #     {["x1", "x2", "x4"], 7}
+    #   ]
+    # }
+
+    # IDEA
+    # - For each index i in joltages:
+    #   create constraint ci : {[buttons[j] s.t. buttons[j] contains i], joltage}
+    # - return variables and constraints
+
+    constraints =
+      joltages
+      |> Enum.with_index()
+      |> Enum.map(fn {joltage, index} ->
+        {
+          find_indices_pred(buttons, fn button -> index in button end)
+          |> Enum.map(fn button_index -> "x#{button_index}" end),
+          joltage
+        }
+      end)
+
+    variables =
+      0..(length(buttons) - 1)
+      |> Enum.map(fn button_index -> "x#{button_index}" end)
+
+    {variables, constraints}
+  end
+
+  def to_cplex_lp({variables, constraints}) do
+    """
+    Minimize
+      #{Enum.join(variables, " + ")}
+    Subject To
+      #{
+        constraints
+        |> Enum.with_index()
+        |> Enum.map(fn {{constraint_vars, constraint_val}, index} ->
+          "c#{index}: #{Enum.join(constraint_vars, " + ")} = #{constraint_val}"
+        end)
+        |> Enum.join("\n  ")
+      }
+    Bounds
+      #{Enum.map(variables, fn v -> "0 <= #{v}" end) |> Enum.join("\n  ")}
+    General
+      #{Enum.map(variables, fn v -> "#{v}" end) |> Enum.join("\n  ")}
+    End
+    """
+  end
+
+  def extract_variable_values(solution_str) do
+    if !Regex.match?(~r/Model status\nOptimal/, solution_str) do
+      raise "INVALID FOUND"
+    end
+
+    vars = Regex.scan(~r/x\d+ (\d+)/, solution_str, capture: :all_but_first)
+    IO.puts("Got #{length(vars)} vars")
+    Enum.map(vars, fn [s] -> String.to_integer(s) end)
   end
 end
