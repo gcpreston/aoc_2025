@@ -4,17 +4,23 @@ defmodule Aoc2025.Day10 do
     # - Need only indicated indices to be activated, all others deactivated
     # - This is a state search tree that expands with a breadth of length(buttons)
     # - I wonder if it is better/any different to start at the activated state and find the off state
+    #
+    # PROBLEM: [.#.##...##] (0,1,7) (0,1,2,3,4,5,6,7,9) (1,4,5,8) (2,3,4) (2,4,5,6,9) (3,5) (0,1,3,4,9) (0,1,2,3,4,5,6,8,9) (0,1,2,6,8,9) (0,5,6) (1,2,3,4,5,6)
+    # Found: depth 7
+    #
+    # Some optimization ideas
+    # - this is essentially bitwise XOR
+    # - XOR is commutative and associative
+    # - We need to find some combination of buttons to press
+    # - Pressing the same button twice NO MATTER WHERE IN THE PATTERN cancels it out
+    # - SO every button is pressed either 0 or 1 times
+    # - => for depth n, can check every combination of buttons and that's it
 
     goals = parse_input(input)
 
     goals
-    |> Enum.map(fn {light_goal, buttons} ->
-      result = find_goal(light_goal, buttons)
-      IO.puts("Goal found for #{inspect(light_goal)}: #{result}")
-      result
-    end)
+    |> Enum.map(fn {light_goal, buttons} -> find_goal(light_goal, buttons) end)
     |> Enum.sum()
-    |> dbg()
   end
 
   def part_2(_input) do
@@ -63,34 +69,34 @@ defmodule Aoc2025.Day10 do
 
   def press_button(lights, button), do: MapSet.symmetric_difference(lights, button)
 
-  def find_goal(light_goal, buttons) do
-    lights_off = MapSet.new()
-    q = :queue.from_list(Enum.map(buttons, fn button -> {press_button(lights_off, button), 1, MapSet.new([lights_off])} end))
-    find_goal(light_goal, buttons, q)
+  def press_buttons(lights, buttons) do
+    Enum.reduce(buttons, lights, fn button, state -> press_button(state, button) end)
   end
 
-  def find_goal(light_goal, buttons, q) do
-    case :queue.out(q) do
-      {:empty, _q} ->
-        raise "how did we even get here"
+  def find_goal(light_goal, buttons) do
+    # check for depth 0, 1, ... until a comb is found
+    find_goal(light_goal, buttons, 0)
+  end
 
-      {{:value, {light_state, depth, seen}}, q} ->
-        cond do
-          light_state == light_goal ->
-            depth
+  def find_goal(light_goal, buttons, depth) do
+    answer =
+      buttons
+      |> comb(depth)
+      |> Enum.find(fn combo ->
+        press_buttons(MapSet.new(), combo) == light_goal
+      end)
 
-          true ->
-            new_additions = :queue.from_list(Enum.flat_map(buttons, fn button ->
-              next_state = press_button(light_state, button)
-              if next_state in seen do
-                []
-              else
-                [{next_state, depth + 1, MapSet.put(seen, light_state)}]
-              end
-            end))
-            new_q = :queue.join(q, new_additions)
-            find_goal(light_goal, buttons, new_q)
-        end
+    if answer == nil do
+      find_goal(light_goal, buttons, depth + 1)
+    else
+      depth
     end
+  end
+
+    # https://rosettacode.org/wiki/Combinations#Elixir
+  def comb(_, 0), do: [[]]
+  def comb([], _), do: []
+  def comb([h|t], m) do
+    (for l <- comb(t, m-1), do: [h|l]) ++ comb(t, m)
   end
 end
