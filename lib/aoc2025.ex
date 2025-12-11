@@ -51,9 +51,11 @@ defmodule Aoc2025 do
       "Elixir.Aoc2025.Day#{padded_day}"
       |> String.to_existing_atom()
 
+    part_2_fp = Path.join([@test_input_directory, "#{padded_day}_2.txt"])
     input = test_input("#{padded_day}.txt")
+    input_2 = if File.exists?(part_2_fp), do: test_input("#{padded_day}_2.txt"), else: input
     part_1_result = apply(module, :part_1, [input])
-    part_2_result = apply(module, :part_2, [input])
+    part_2_result = apply(module, :part_2, [input_2])
 
     {part_1_result, part_2_result}
   end
