@@ -33,40 +33,12 @@ defmodule Aoc2025.Day11 do
       end
     end
 
-    def count_part_2_paths_between(g, v1, v2), do: count_part_2_paths_between(g, v2, [{v1, MapSet.new([v1])}], 0)
-
-    def count_part_2_paths_between(_g, _v2, [], total), do: total
-
-    def count_part_2_paths_between(g, v2, [{v, seen} | rest], total) do
-      if v == v2 && "dac" in seen && "fft" in seen do
-        count_part_2_paths_between(g, v2, rest, total + 1)
-      else
-        neigh = Enum.filter(neighbors(g, v), fn n -> !(n in seen) end)
-        new_seen = MapSet.put(seen, v)
-        count_part_2_paths_between(g, v2, Enum.map(neigh, &({&1, new_seen})) ++ rest, total)
-      end
-    end
-
     defmemo count_paths_between_v2(g, v1, v2) do
       if v1 == v2 do
         1
       else
         neighbors(g, v1)
         |> Enum.map(fn n -> count_paths_between_v2(g, n, v2) end)
-        |> Enum.sum()
-      end
-    end
-
-    defmemo count_paths_between_v2_p2(g, v1, v2, seen) do
-      if v1 == v2 do
-        if "dac" in seen && "fft" in seen do
-          1
-        else
-          0
-        end
-      else
-        neighbors(g, v1)
-        |> Enum.map(fn n -> count_paths_between_v2_p2(g, n, v2, MapSet.put(seen, v1)) end)
         |> Enum.sum()
       end
     end
@@ -82,12 +54,12 @@ defmodule Aoc2025.Day11 do
   def part_2(input) do
     g = parse_input(input)
 
-    svr_dac = Graph.count_paths_between_v2(g, "svr", "dac") |> dbg()
-    svr_fft = Graph.count_paths_between_v2(g, "svr", "fft") |> dbg()
-    dac_fft = Graph.count_paths_between_v2(g, "dac", "fft") |> dbg()
-    fft_dac = Graph.count_paths_between_v2(g, "fft", "dac") |> dbg()
-    dac_out = Graph.count_paths_between_v2(g, "dac", "out") |> dbg()
-    fft_out = Graph.count_paths_between_v2(g, "fft", "out") |> dbg()
+    svr_dac = Graph.count_paths_between_v2(g, "svr", "dac")
+    svr_fft = Graph.count_paths_between_v2(g, "svr", "fft")
+    dac_fft = Graph.count_paths_between_v2(g, "dac", "fft")
+    fft_dac = Graph.count_paths_between_v2(g, "fft", "dac")
+    dac_out = Graph.count_paths_between_v2(g, "dac", "out")
+    fft_out = Graph.count_paths_between_v2(g, "fft", "out")
 
     (svr_dac * dac_fft * fft_out) + (svr_fft * fft_dac * dac_out)
   end
