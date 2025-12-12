@@ -33,6 +33,8 @@ defmodule Aoc2025.Day12 do
     |> length()
   end
 
+  def part_2(_), do: nil
+
   def parse_input(input) do
     blocks = String.split(input, "\n\n")
     lines = List.last(blocks) |> String.split("\n")

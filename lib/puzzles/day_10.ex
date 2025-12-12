@@ -1,4 +1,7 @@
 defmodule Aoc2025.Day10 do
+  @model_file "day10_model_temp.lp"
+  @solution_file "day10_solution_temp"
+
   def part_1(input) do
     # IDEA
     # - Need only indicated indices to be activated, all others deactivated
@@ -23,17 +26,19 @@ defmodule Aoc2025.Day10 do
     |> Enum.sum()
   end
 
-  # Latest answer: 18557 (too low)
   def part_2(input) do
     goals = parse_input(input)
 
-    goals
-    |> Enum.with_index()
-    |> Enum.map(fn {{_light_goal, buttons, joltages}, i} ->
-      IO.puts("Solving for input line #{i + 1}")
-      solve_joltages(joltages, buttons)
-    end)
-    |> Enum.sum()
+    result =
+      goals
+      |> Enum.map(fn {_light_goal, buttons, joltages} -> solve_joltages(joltages, buttons) end)
+      |> Enum.sum()
+
+    File.rm!(@model_file)
+    File.rm!(@solution_file)
+    File.rm!("HiGHS.log")
+
+    result
   end
 
   def parse_input(input) do
@@ -139,13 +144,12 @@ defmodule Aoc2025.Day10 do
       generate_constraints(joltages, buttons)
       |> to_cplex_lp()
 
-    File.write!("day10_model_temp.lp", model)
+    File.write!(@model_file, model)
 
     System.shell("highs day10_model_temp.lp --solution_file day10_solution_temp")
 
-    File.read!("day10_solution_temp")
-    |> extract_variable_values()
-    |> Enum.sum()
+    File.read!(@solution_file)
+    |> extract_minimized_sum()
   end
 
   def generate_constraints(joltages, buttons) do
@@ -204,13 +208,8 @@ defmodule Aoc2025.Day10 do
     """
   end
 
-  def extract_variable_values(solution_str) do
-    if !Regex.match?(~r/Model status\nOptimal/, solution_str) do
-      raise "INVALID FOUND"
-    end
-
-    vars = Regex.scan(~r/x\d+ (\d+)/, solution_str, capture: :all_but_first)
-    IO.puts("Got #{length(vars)} vars")
-    Enum.map(vars, fn [s] -> String.to_integer(s) end)
+  def extract_minimized_sum(solution_str) do
+    [[result_str]] = Regex.scan(~r/Objective (\d+)/, solution_str, capture: :all_but_first)
+    String.to_integer(result_str)
   end
 end
