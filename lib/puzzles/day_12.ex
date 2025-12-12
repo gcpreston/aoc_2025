@@ -25,18 +25,12 @@ defmodule Aoc2025.Day12 do
     #   space wasted. We can try to say that if we can't make a layout with this, then we can't
     #   make it in any way, and then see where it fails.
 
-    # 0: 5, 1: 6, 2: 7, 3: 7, 4: 7, 5: 7
-
     input
     |> parse_input()
     |> Enum.filter(fn {canvas, blocks} ->
       canvas_size(canvas) > blocks_to_use(blocks)
     end)
     |> length()
-  end
-
-  def part_2(input) do
-
   end
 
   def parse_input(input) do
@@ -54,6 +48,7 @@ defmodule Aoc2025.Day12 do
     {{x, y}, {a, b, c, d, e, f}}
   end
 
+  # 0: 5, 1: 6, 2: 7, 3: 7, 4: 7, 5: 7
   def blocks_to_use({a, b, c, d, e, f}) do
     (5 * a) + (6 * b) + (7 * c) + (7 * d) + (7 * e) + (7 * f)
   end
