@@ -37,7 +37,7 @@ defmodule Aoc2025.Day01 do
     {_last_cur, zero_count} =
       Enum.reduce(clicks, {50, 0}, fn n, {cur, zero_count} ->
         new_cur = next_cursor(cur, n)
-        IO.puts("cur #{cur} + clicks #{n} = new cur #{new_cur}")
+        # IO.puts("cur #{cur} + clicks #{n} = new cur #{new_cur}")
         {new_cur, zero_count + past_zero_count(cur, n)}
       end)
 
